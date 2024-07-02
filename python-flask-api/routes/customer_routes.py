@@ -30,7 +30,7 @@ def create_customer():
     cursor = mysql.connection.cursor()
     cursor.execute("INSERT INTO Customer (Name, PhoneNumber, Email) VALUES (%s, %s, %s)", (name, phone_number, email))
     mysql.connection.commit()
-    return '', 201
+    return 'Success', 201
 
 @customer_bp.route('/customers/<int:id>', methods=['PUT'])
 def update_customer(id: int):
@@ -49,3 +49,24 @@ def delete_customer(id: int):
     cursor.execute("DELETE FROM Customer WHERE CustomerID = %s", (id,))
     mysql.connection.commit()
     return '', 200
+
+@customer_bp.route('/login', methods=['POST'])
+def login_customer():
+    data = request.get_json()
+    email = data.get('email')
+    phone_number = data.get('phone')
+
+    if not email or not phone_number:
+        return jsonify({'error': 'Email and phone number are required.'}), 400
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT * FROM Customer WHERE Email = %s AND PhoneNumber = %s", (email, phone_number))
+        customer = cursor.fetchone()
+
+        if customer is None:
+            return jsonify({'error': 'Invalid credentials. Please check your email and phone number.'}), 401
+
+        return jsonify(customer), 200
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500

@@ -51,3 +51,36 @@ def delete_restaurant(id: int):
     cursor.execute("DELETE FROM Restaurants WHERE RestaurantID = %s", (id,))
     mysql.connection.commit()
     return '', 200
+
+@restaurant_bp.route('/restaurants/login', methods=['POST'])
+def restaurant_login():
+    data = request.get_json()
+    email = data.get('email')
+    phone = data.get('phone')
+
+    if not email or not phone:
+        return jsonify({'error': 'Email and phone number are required.'}), 400
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT * FROM Restaurants WHERE Email = %s AND PhoneNumber = %s", (email, phone))
+        restaurant = cursor.fetchone()
+
+        if restaurant:
+            # Construct the response JSON object with relevant data
+            response_data = {
+                'message': 'Login successful.',
+                'restaurant': {
+                    'id': restaurant['RestaurantID'],
+                    'name': restaurant['Name'],
+                    'email': restaurant['Email'],
+                    'phone_number': restaurant['PhoneNumber']
+                    # Add other fields as needed
+                }
+            }
+            return jsonify(response_data), 200
+        else:
+            return jsonify({'error': 'Invalid credentials. Please check your email and phone number.'}), 401
+
+    except Exception as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
